@@ -1,0 +1,12 @@
+name: som_script_env
+
+dependencies:
+     - python=3.8
+     - numpy
+     - pandas
+     - matplotlib
+     - scikit-learn
+     - pip
+     - pip: 
+          - minisom
+          - openpyxl
