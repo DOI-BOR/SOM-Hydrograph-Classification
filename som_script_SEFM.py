@@ -75,6 +75,7 @@ if __name__ == "__main__":
     ##User enters basin and subbasin details
 
     #Name of the file that hydrograph files are contained within
+    #Data should be in ft^3/s
     fileName = "OUTPUT"
     #Number of days for each simulation
     d = 15 
@@ -86,6 +87,10 @@ if __name__ == "__main__":
 
     #A correction factor for clustering bandwidth - user may need to tweak 
     correction = 1.25
+    #y-axis min and max values for fixed range cluster plots
+    #User will most likely need to adjust based on dataset if fixed range cluster plots are desired
+    min_y = 0
+    max_y = 7000
 
     ################################################## Extracting SEFM data #######################################################
 
@@ -226,18 +231,21 @@ if __name__ == "__main__":
             #For each hydrograph number, the corresponding row/hydrograph from the input data is referenced
             hydroData = array[value]
             #Plots the hydrograph as a function of time 
+            plt.rcParams["font.family"] = "serif"
+            plt.rcParams["font.serif"] = "Times New Roman"
             plt.plot(time_hours,hydroData.T)
             plt.xlabel("Hours in Window")
-            plt.ylabel("Streamflow ($ft^3$/hr)")
+            plt.ylabel("Streamflow ($ft^3$/s)")
             plt.xlim(left = 0) #Starts the x axis values at 0
             #plt.ylim(bottom = 0)
             plt.grid()
            #Names each plot after the SOM cell it represents
             plt.title(old_keys[cell])
-
+            plt.rcParams["font.family"] = "serif"
+            plt.rcParams["font.serif"] = "Times New Roman"
             #Saves each plot as a png image in the Som_Cell_Plots folder
             fileName = str(old_keys[cell]) + ".png"
-            plt.savefig(hydro_plots + fileName)
+            plt.savefig(hydro_plots + fileName, dpi = 300)
             plt.close()
     
     ###Plots hydrographs from each bin along with the overall weight vector of the bin
@@ -278,19 +286,23 @@ if __name__ == "__main__":
                 os.makedirs(weight_plots)
 
             #Plots the hydrograph as a function of time from the beginning of the window
+            plt.rcParams["font.family"] = "serif"
+            plt.rcParams["font.serif"] = "Times New Roman"
             plt.plot(time_hours,hydroData.T)
             plt.plot(time_hours, weight.T, linestyle = "", marker = "o")
             #Uncomment line below to displays the percentile line from the cell weight as a black dashed line
             #plt.plot(time_hours, percentile_line, linestyle = '--', color = 'k', linewidth = 2)
+            plt.rcParams["font.family"] = "serif"
+            plt.rcParams["font.serif"] = "Times New Roman"
             plt.xlabel("Hours in Window")
-            plt.ylabel("Streamflow ($ft^3$/hr)")
+            plt.ylabel("Streamflow ($ft^3$/s)")
             plt.xlim(left = 0)
             #plt.ylim(bottom = 0)
            #Names each plot after the bin it represents
-            plt.title(old_keys[cell])
+            #plt.title(old_keys[cell])
             plt.grid()
             fileName = str(old_keys[cell]) + ".png"
-            plt.savefig(weight_plots + fileName)
+            plt.savefig(weight_plots + fileName, dpi = 300)
             plt.close()
  
     ################################################# Mean-Shift Clustering ######################################################
@@ -449,32 +461,37 @@ if __name__ == "__main__":
             #calculates mean of each SOM cell
             cell_mean.append(np.mean(hydrograph))
             #Plots the hydrograph as a function of time from the beginning of the window
+            plt.rcParams["font.family"] = "serif"
+            plt.rcParams["font.serif"] = "Times New Roman"
             plt.plot(time_hours,hydrograph.T)
-            plt.plot(time_hours, weightarray.T, linestyle = "", marker = "o")
+            plt.plot(time_hours, weightarray.T, linewidth = 5)
+            #plt.plot(time_hours, weightarray.T, linestyle = "", marker = "o")
             plt.xlabel("Hours in Window")
-            plt.ylabel("Streamflow ($ft^3$/hr)")
+            plt.ylabel("Streamflow ($ft^3$/s)")
             plt.xlim(left = 0)
             #plt.ylim(bottom = 0)
            #Names each plot after the bin it represents
-            plt.title( i)
+            #plt.title( i)
             #Saves plots to pngs in the home directory
             fileName = str(i) + ".png"
-            plt.savefig(clusters + fileName, bbox_inches = 'tight')
+            plt.savefig(clusters + fileName, bbox_inches = 'tight', dpi = 300)
         plt.close()
         for value in clean:
+            plt.rcParams["font.family"] = "serif"
+            plt.rcParams["font.serif"] = "Times New Roman"
             hydrograph = array[value]
             #Plots the hydrograph as a function of time from the beginning of the window
             plt.plot(time_hours,hydrograph.T)
             plt.plot(time_hours, weightarray.T, linestyle = "", marker = "o")
             plt.xlabel("Hours in Window")
-            plt.ylabel("Streamflow ($ft^3$/hr)")
+            plt.ylabel("Streamflow ($ft^3$/s)")
             plt.xlim(left = 0) #Starts the x axis values at 0
-            plt.ylim(bottom = 1e6, top = 1.05e6)
+            plt.ylim(bottom = min_y, top = max_y)
            #Names each plot after the bin it represents
-            plt.title( i)
+            #plt.title( i)
             #Saves plots to pngs in the home directory
             fileName = str(i) + " fixed.png"
-            plt.savefig(fixed_cluster + fileName)
+            plt.savefig(fixed_cluster + fileName, dpi = 300)
         plt.close()
        
         ################################# Calculates and plots distributions for each cluster #####################################
@@ -522,6 +539,8 @@ if __name__ == "__main__":
             n = 0
             #Iterates through every parameter and plots the parameter for every hydrograph in the cluster as a histogram
             for distribution in params:
+                plt.rcParams["font.family"] = "serif"
+                plt.rcParams["font.serif"] = "Times New Roman"
                 plt.hist(distribution, 300)
                 plt.title("Cluster " + str(i))
                 plt.xlabel(xlabs[n])
@@ -529,7 +548,7 @@ if __name__ == "__main__":
                 #plt.xlim(left = 0)
                 #plt.ylim(bottom = 0)
                 plt.grid()
-                plt.savefig(dists + str(i) + pngNames[n])
+                plt.savefig(dists + str(i) + pngNames[n], dpi = 300)
                 plt.close()
                 n += 1
 
