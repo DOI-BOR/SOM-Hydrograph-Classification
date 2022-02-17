@@ -99,7 +99,7 @@ if __name__ == "__main__":
     #Takes a df w/ 2 columns at a time (date/time and stream flow)
     data = df.iloc[:, 0:2]
     #Uses a smaller subset of the data for now so that testing doesn't take so long
-    data = data[0:200000]
+    #data = data[0:200000]
 
     #If the dataset has negative values, those are changed to NaN's
     if ((df.iloc[:,1] < 0).values.any()):
