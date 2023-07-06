@@ -1,0 +1,12 @@
+name: som
+
+dependencies:
+     - python=3.8
+     - numpy
+     - pandas
+     - matplotlib
+     - scikit-learn
+     - openpyxl
+     - pip
+     - pip: 
+          - minisom
