@@ -1,5 +1,4 @@
 # Hydrologic Typing
-## Overview
 Stochastic rainfall/runoff models are at the forefront of hydrologic modeling state-of-practice. These models have increasingly been used by the Reclamation Technical 
 Service Center (TSC) to estimate flood magnitudes and associated return periods, along with uncertainty, for detailed flood hazard studies such as issue evaluations 
 (IEs) and corrective action studies (CASs). Stochastic rainfall/runoff models simulate many thousands of potential flood realizations across frequency space to estimate 
@@ -29,6 +28,15 @@ This script contains code to run the SOM and clustering algorithms for simulated
 3. Gage script file: som_script_gage.py
 This script contains code to run the SOM and clustering algorithms for observed gage data.
 
+### Environment Setup
+This section provides instructions for setting up the environment to be used for running the script once the bundle of setup files has been downloaded.
+1. Install Miniforge and select the option to “add to path” during the installation. Choose the most current version of Miniforge that is available for the operating system 
+being utilized.
+2. Open a command prompt window such as Git Bash or Windows Command Prompt within the setup folder.
+3. In the command line, type “conda env create -f environment.yml” and hit enter to create a build environment from the provided configuration file.
+4. In the command line, type “conda activate som”. The configuration file has already automatically named this new environment “som”. To verify that the environment was 
+correctly installed and available, type “conda env list” into the command line, and check that “som_scrip_env” is listed in the output.
+
 ### Input Data Format/Preprocessing
 This section describes how the input data should be formatted prior to running the script file. The formatting requirements are different for simulated and gage data.
 
@@ -41,16 +49,6 @@ units of ft3/s.
 Gage data should be contained within one comma separated (csv) file. There should be two columns: the first with dates and times for each measurement entry (formatted as 
 month/day/year hour:minute with hours ranging from 0 to 23) and the second column with streamflow measurements in units of ft3/s. Only one header line containing column 
 names should be present above the streamflow values.
-
-
-### Environment Setup
-This section provides instructions for setting up the environment to be used for running the script once the bundle of setup files has been downloaded.
-1. Install Miniforge and select the option to “add to path” during the installation. Choose the most current version of Miniforge that is available for the operating system 
-being utilized.
-2. Open a command prompt window such as Git Bash or Windows Command Prompt within the setup folder.
-3. In the command line, type “conda env create -f environment.yml” and hit enter to create a build environment from the provided configuration file.
-4. In the command line, type “conda activate som”. The configuration file has already automatically named this new environment “som”.
-a. To verify that the environment was correctly installed and available, type “conda env list” into the command line, and check that “som_scrip_env” is listed in the output.
 
 ### User Inputs to the Script
 This section provides details on user inputs to the script that must be entered according to properties of the input data. The script file can be edited through any text 
@@ -91,20 +89,15 @@ hydrographs with the SOM node weight vector.
 
 #### Cluster Plots Folder 
 Contains a png image for each cluster. Each image shows a plot of every hydrograph contained in the cluster along with a thicker line that represents the average nodal weight 
-vector of the cluster.
-
-The x and y-axis ranges are not held constant between plots so that the shape over time in each cluster is more apparent.
+vector of the cluster. The x and y-axis ranges are not held constant between plots so that the shape over time in each cluster is more apparent.
 
 #### Fixed range Cluster Plots Folder
 Contains a png image for each cluster. Each image shows a plot of every hydrograph contained in the cluster along with a thicker line that represents the average nodal weight 
-vector of the cluster.
-
-The x and y-axis ranges are held constant in every plot so that flow magnitude can be compared between clusters.
+vector of the cluster. The x and y-axis ranges are held constant in every plot so that flow magnitude can be compared between clusters.
 
 #### SOM Cell Plots Folder
-Contains a png image for every SOM node. Each image shows a plot of every hydrograph contained in each node of the SOM.
-
-The x and y-axis ranges are not held constant between plots so that shape over time is more apparent.
+Contains a png image for every SOM node. Each image shows a plot of every hydrograph contained in each node of the SOM. The x and y-axis ranges are not held constant between 
+plots so that shape over time is more apparent.
 
 #### SOM Cell Plots Weight Folder
 Contains a png image for every SOM node. Each image shows a plot of every hydrograph contained in one node of the SOM along with a thicker line that represents the weight vector 
@@ -113,9 +106,8 @@ of the SOM cell.
 The x and y-axis ranges are not held constant between plots so that shape over time is more apparent.
 
 #### Distributions Folder
-Contains four distribution plots for each cluster: hydrograph mean, number of peaks, largest peak value, and hydrograph volume.
-
-Each distribution plot is generated by calculating the parameter for each SOM node included in the cluster using the hydrographs within the SOM node.
+Contains four distribution plots for each cluster: hydrograph mean, number of peaks, largest peak value, and hydrograph volume. Each distribution plot is generated by calculating 
+the parameter for each SOM node included in the cluster using the hydrographs within the SOM node.
 
 ### Interpreting the Classification
 Users should review the classification output critically to confirm that it is capturing behavior for the basin under analysis. While the particular features under investigation 
@@ -134,9 +126,7 @@ clusters, and can be used as a check to make sure that the clusters are distinct
 
 #### Cluster/Fixed Range Cluster Plots Folders
 The images in the Cluster Plots folder can be used to view the shape over time in each cluster and to assess whether the cluster weight line is an accurate representation of each 
-cluster’s characteristics.
-
-The images in the Fixed Range Cluster Plots folder can be used to assess how each cluster’s flow magnitude compares to the others.
+cluster’s characteristics. The images in the Fixed Range Cluster Plots folder can be used to assess how each cluster’s flow magnitude compares to the others.
 
 #### SOM Cell Plot Weight Folders
 These plots can be used to view the hydrographs categorized into each SOM node, and visually check that the categorizations seem distinct from one another. The plots with the SOM 
@@ -147,3 +137,6 @@ The histograms in this folder are visualizations of the parameters contained in 
 confirm that the clusters each have distinct properties such as mean and volume distribution as well as to gain a deeper understanding of what types of hydrographs each cluster 
 represents.
 
+## License
+This code is released under the CC0 license. Any changes shared back to this repository are released under CC0 and the author waives any claim to the intellectual property. If an 
+author disagrees with the public release of their changes, the author is encouraged to maintain an separate fork of this package.
