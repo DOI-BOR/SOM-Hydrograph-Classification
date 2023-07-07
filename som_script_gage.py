@@ -1,75 +1,12 @@
 import numpy as np
 import pandas as pd
-import os
-import math
-import minisom
+import os, math, copy
 from minisom import MiniSom
-import copy
-import matplotlib
 import matplotlib.pyplot as plt
 import sklearn
 from sklearn.cluster import MeanShift
-import openpyxl
+from som_functions import *
 
-def peakVal(hydrograph):
-    """
-    Finds and returns the value of the largest peak (defined as the value with the greatest absolute difference from the mean of the array)
-    in the input array
-    
-    Parameters
-    ----------
-    hydrograph : np.array
-        An array containing streamflow values 
-    
-    Returns
-    -------
-    peak : float
-        The greatest difference between any value in the array and the mean of the array
-    
-    """
-    #Sets greatest peak value at zero to start
-    peak = 0
-    #Calculates each hydrograph's mean
-    h_mean = np.mean(hydrograph, axis = 0)
-
-    for entry in hydrograph:
-        #Calculates difference between every value in the hydrograph and the individual hydrograph's mean
-        diff = abs(entry - h_mean)
-        #If the difference is greater than the current peak value, then the largest peak value is set as the difference
-        if (diff > peak):
-            peak = diff    
-    return peak
-
-def numPeaks(hydrograph, percentile = 85):
-    """
-    Returns the number of peaks in an array by calculating how many times the array intersects with a percentile line
-    
-    Parameters
-    ----------
-    hydrograph : np.array
-        An array containing streamflow values 
-    percentile : int, optional
-        Sets the percentile to use when calculating the number of peaks, default is the 85th percentile
-    
-    Returns
-    -------
-    count : int
-        The number of times that values in the input array intersect with the set percentile (used as number of peaks)
-    """
-    #Calculates the 85th percentile of each hydrograph
-    #A peak is defined as being greater than the 85th percentile of the hydrograph
-    percentile_val = np.percentile(hydrograph, percentile)
-    #Makes a list filled with the percentile value so it can be compared to all values in the hydrograph
-    percentile_line = np.empty(len(hydrograph))
-    percentile_line.fill(percentile_val)
-    #Calculates how many times each hydrograph intersects with the percentile line
-    diff = hydrograph - percentile_line
-    #Sets a condition that is true when the difference between hydrograph value and percentile line is greater than 0
-    positive = diff > 0
-    #Keeps track of when the difference goes from being positive to negative, which indicates an intersection
-    count = np.logical_xor(positive[1:],positive[:-1]).sum()
-    
-    return count
 
 if __name__ == "__main__":
 
@@ -234,7 +171,7 @@ if __name__ == "__main__":
     #iterates through every hydrograph in the input data
     for h in array:
         #Calls the peakVal function
-        peak = peakVal(h)
+        peak = calculate_peak_value(h)
         #Calculate the individual hydrograph's mean
         h_mean = np.mean(h)
         if h_mean == 0:
@@ -245,7 +182,7 @@ if __name__ == "__main__":
             peaks.append(scaled_peak)
 
         #Adds number of intersections with a percentile line (peaks) to a list by calling numPeaks function
-        intersections.append(numPeaks(h))
+        intersections.append(count_number_of_peaks(h))
     #Finds the maximum number of peaks out of all hydrographs   
     max_peaks = max(intersections)
     #Scales the numbers of peaks list by the maximum number of peaks and overall hydrograph mean
@@ -349,9 +286,9 @@ if __name__ == "__main__":
         #Makes a list of distances for cells that have associated hydrographs (instead of including distances for all cells on the map)
         relevant_distances.append(distances[m][n])
         #Calls the peakVal function for each weight
-        peaks.append(peakVal(weight))
+        peaks.append(calculate_peak_value(weight))
         #Adds number of intersections with a percentile line (peaks) for each weight to a list by calling numPeaks function
-        intersections.append(numPeaks(weight))
+        intersections.append(count_number_of_peaks(weight))
         if plots == True:
             #If user is generating plots and plot folder does not exist, creates a folder to hold plots
             if not os.path.isdir(weight_plots):
@@ -596,12 +533,12 @@ if __name__ == "__main__":
                     vol = (np.trapz(h, time_hours))
                     hydro_vol.append(vol/np.mean(h)*overall_mean)
                     #Calls the peak val function to calculate the largest peak in each hydrograph
-                    peak = peakVal(h)
+                    peak = calculate_peak_value(h)
                     scaled_peak = peak/h_mean*overall_mean
                     peak_vals.append(scaled_peak)
                 #Calls the numPeaks function to calculate the number of peaks in each hydrograph
-                intersections.append(numPeaks(h))
-                single_cell_intersects.append(numPeaks(h))
+                intersections.append(count_number_of_peaks(h))
+                single_cell_intersects.append(count_number_of_peaks(h))
             cell_intersects.append(sum(single_cell_intersects))
         #Determines the maximum number of peaks in any of the hydrographs and uses it for scaling
         max_peaks = max(intersections)
