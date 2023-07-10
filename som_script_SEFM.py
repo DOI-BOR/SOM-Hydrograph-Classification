@@ -49,11 +49,17 @@ if __name__ == "__main__":
         # Reads hydrograph data from file (each file is one hydrograph)
         data = np.genfromtxt(file, delimiter=' ', skip_header=2)
 
+        # Resample the data to hourly
+        data = resample_timeseries(data, sample_freq)
+
         # Adds hydrograph as one row in a dataframe containing all hydrographs from the file
         hydros.loc[i] = data
         i += 1
 
-    print("Done importing data. Number of hydrographs:", len(hydros))
+    # Set the sample frequency to hourly
+    sample_freq = 24
+
+    print("Done importing data. Number of hydrographs: \t", len(hydros))
 
     # Creates a sample frequency column to the df that tells how often samples are taken each day
     freq_column = []

@@ -35,58 +35,26 @@ if __name__ == "__main__":
     ################################################################################################################################################################################
     ### Preprocessing ###
     # Read the input data
-    data = pd.read_csv(input_filename)
-
-    # Uses a smaller subset of the data for now so that testing doesn't take so long
-    #data = data[0:200000]
+    data = pd.read_csv(input_filename, index_col=[0])
 
     # If the dataset has negative values, those are changed to NaN's
-    if (data.iloc[:, 1] < 0).values.any():
-        # First, makes a new dataframe not including the data/time column so that it's easier to focus on values in other columns
-        dates = data.iloc[:,0]
-        data = data.drop(data.columns[0], axis = 1)
-
-        # Next, change negative values to NaN, which python has specific functions for eliminating:
-        # First iterate through the dataframe by column
-        for column in data:
-            i = 0
-
-            # Iterate through every value in each column, using i as an index
-            for value in data[column]:
-                if (value < 0):
-                    # replaces negative values with "NaN"
-                    data[column][i]= "NaN"
-                i += 1
-        # Puts back the data/time column
-        data.insert(0, "DateTime", dates)  
+    data[data < 0] = "NaN"
  
     # Fills in NaNs where possible by linearly interpolating surrounding data
-    data.iloc[:, 1].interpolate(method = 'linear', limit = 2)
+    data.iloc[:, 0].interpolate(method='linear', limit=2, inplace=True)
 
     # Changes sampling frequency if it isn't already hourly
-    if sample_freq != 24:
-        # Creates date/time column that is datetime format
-        data["DateTime"] = pd.to_datetime(data.iloc[:,0])
-
-        # Indexes by the datetime column and keeps only hourly measurements
-        data.index = data['DateTime']
-        hourly_data = data.resample('H').mean()
-
-        # Makes a dataframe from the hourly data
-        data = pd.DataFrame(hourly_data)
-
-        # Inserts the new datetime column into the first column of the dataframe
-        data.insert(0, "DateTime", data.index)
-        sample_freq = 24
+    data = resample_timeseries(data, sample_freq)
+    sample_freq = 24
 
     # User must enter desired number of days per window as well as sampling frequency of data above
     window_hours = number_of_window_days * sample_freq
 
     # Makes the data column into an array to be used with the sliding windows function below
-    streamFlows = np.asarray(data.iloc[:,1])
+    stream_flows = data.values.flatten()
 
     # Divides data into sliding windows, each containing the desired number of days per window
-    streamFlows = np.lib.stride_tricks.sliding_window_view(streamFlows, window_hours)[::sample_freq,:]
+    stream_flows = np.lib.stride_tricks.sliding_window_view(stream_flows, window_hours)[::sample_freq, :]
 
     # Creates column names for a correctly sized dataframe
     columns = []
@@ -95,30 +63,28 @@ if __name__ == "__main__":
         columns.append(i)
 
     # Puts streamflow data into the data frame using column names above
-    newdf = pd.DataFrame(streamFlows, columns = columns)
+    newdf = pd.DataFrame(stream_flows, columns=columns)
 
     # Identify rows with NaNs by taking a sum of every row that preserves NaNs and adding it as a column to the newdf
-    newdf["sums"] = newdf.sum(axis = 1, skipna = False)
+    newdf["sums"] = newdf.sum(axis = 1, skipna=False)
 
     ## Adds a start Date/Time column ##
-    # Converts date times to date/time objects
-    data["DateTime"] = pd.to_datetime(data.iloc[:,0])
 
     # Makes two arrays from the datetime objects and doesn't include the time variable in one so that the unique function can be used below
-    dateTimes = np.asarray(data["DateTime"])
-    uniqueCheck = np.asarray(data["DateTime"].dt.date)
+    date_times = np.asarray(data.index)
+    unique_check = np.asarray(data.index.date)
 
     # Sorts through dates and adds unique dates to the start dates array
-    uniqueDates, indices = np.unique(uniqueCheck, return_index = True)
-    startDates = dateTimes[indices]
+    unique_dates, indices = np.unique(unique_check, return_index = True)
+    start_dates = date_times[indices]
 
     # Adjusts list of start dates/times to account for the 6 days in the last 7-day window that will never be start dates
     # This makes the start_datetimes list have the same number of entries as the number of windows from the data
-    difference = len(startDates) - len(streamFlows)
-    startDates = np.delete(startDates, slice(-difference, len(startDates)))
+    difference = len(start_dates) - len(stream_flows)
+    start_dates = np.delete(start_dates, slice(-difference, len(start_dates)))
 
     # Adds a column of start dates/times to the dataset
-    newdf.insert(0, "Start Date", startDates)  
+    newdf.insert(0, "Start Date", start_dates)
 
     # Adds a sample frequency column to the df that tells how often samples are taken each day
     freq_column = []

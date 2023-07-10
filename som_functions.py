@@ -7,6 +7,37 @@ import sklearn
 from sklearn.cluster import MeanShift
 
 
+def resample_timeseries(data, sample_freq):
+    """
+    Converts data that is not on an hourly timestep to an hourly timestep
+
+    Parameters
+    ----------
+    data: DataFrame
+        Input data to be resampled
+    sample_freq: int
+        Number of daily samples
+
+    Returns
+    -------
+
+    """
+
+    if sample_freq == 24:
+        resampled_data = data
+
+    elif sample_freq > 24:
+        # Convert from subhourly data to hourly data
+        resampled_data = data.resample('H').mean()
+
+    else:
+        # Convert from above hourly data to hourly. This assumes a forward fill of the data.
+        resample_data = data('H').ffil()
+
+    # Return to the calling function
+    return resample_data
+
+
 def calculate_peak_value(timeseries):
     """
     Finds and returns the value of the largest peak (defined as the value with the greatest absolute difference from the mean of the array)
