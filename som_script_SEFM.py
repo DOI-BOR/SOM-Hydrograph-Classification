@@ -12,7 +12,8 @@ if __name__ == "__main__":
 
     ### User inputs ##
     # Name of the folder that timeseries files are contained within. Data should be in ft^3/s.
-    input_path = "OUTPUT"
+    #input_path = "OUTPUT"
+    input_path = "/Users/dloney/Documents/follum/inland_hazards/SOM-Hydrograph-Classification/data/other"
 
     # Number of days for each simulation
     number_of_window_days = 15
@@ -95,7 +96,7 @@ if __name__ == "__main__":
     ### Calculating Largest Peak Value and Number of Peaks per Hydrograph Prior to the SOM ###
     # creates a dataset without the frequency column for hydrograph analysis
     # allows the script file to be restarted from this cell after adjustments are made instead of re-reading all input data
-    data = hydros.iloc[:, 1:len(hydros.columns) - 1]
+    data = hydros.iloc[:, 1:len(hydros.columns)]
 
     # Makes  a list of 0 through the number of hours in each window
     time_hours = range(data.shape[1])
@@ -205,7 +206,7 @@ if __name__ == "__main__":
 
     ############################################# Plotting the clusters and generating results ###################################################
     output_summary_spreadsheet(time_hours, plots, distributions_path, unique_labels, df, win_map_copy, weights, number_of_window_days, sample_freq, som_input, min_y, max_y,
-                               clusters_path, fixed_clusters_path, metrics_path)
+                               clusters_path, fixed_clusters_path, metrics_path, results_path)
 
     ### Print that the analysis is complete ###
     print("Done")

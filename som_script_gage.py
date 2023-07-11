@@ -12,13 +12,13 @@ if __name__ == "__main__":
 
     ### User inputs ###
     # First line of CSV should be column names. First 2 columns of data should be datetime and streamflow values in ft^3/s.
-    input_filename = "USGS data.csv"
+    input_filename = "/Users/dloney/Documents/follum/inland_hazards/SOM-Hydrograph-Classification/data/Boise hydro_extraction_results/MasterBoiseData.csv"
 
     # Specify the number of units(days) in each sliding window
     number_of_window_days = 7
 
     # Specify the number of samples taken each day
-    sample_freq = 96
+    sample_freq = 24
 
     # If user wants to generate metric cluster plots and SOM cell hydrograph plots, set plots to True below
     # Generating plots increases runtime
@@ -34,14 +34,16 @@ if __name__ == "__main__":
 
     ################################################################################################################################################################################
     ### Preprocessing ###
-    # Read the input data
-    data = pd.read_csv(input_filename, index_col=[0])
+    # Read the input data. This may need to be adjusted depending on the format of your data
+    #data = pd.read_csv(input_filename, index_col=[0])
+    data = pd.read_csv(input_filename, index_col=[0], skiprows=19, usecols=[0, 1], parse_dates=True)
+    data = data.iloc[851:, 0]
 
     # If the dataset has negative values, those are changed to NaN's
-    data[data < 0] = "NaN"
+    data[data < 0] = np.NAN
  
     # Fills in NaNs where possible by linearly interpolating surrounding data
-    data.iloc[:, 0].interpolate(method='linear', limit=2, inplace=True)
+    data.interpolate(method='linear', limit=2, inplace=True)
 
     # Changes sampling frequency if it isn't already hourly
     data = resample_timeseries(data, sample_freq)
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     newdf = pd.DataFrame(stream_flows, columns=columns)
 
     # Identify rows with NaNs by taking a sum of every row that preserves NaNs and adding it as a column to the newdf
-    newdf["sums"] = newdf.sum(axis = 1, skipna=False)
+    newdf["sums"] = newdf.sum(axis=1, skipna=False)
 
     ## Adds a start Date/Time column ##
 
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     i = 0
     for entry in newdf["sums"]:
         if math.isnan(entry):
-            newdf = newdf.drop(labels = i, axis = 0)
+            newdf = newdf.drop(labels=i, axis=0)
         i += 1
 
     print("Number of hydrographs:", len(newdf))
@@ -240,8 +242,8 @@ if __name__ == "__main__":
     data["Cell Index"] = cellList
 
     ### Plotting the clusters and generating results ###
-    output_summary_spreadsheet(time_hours, timeseries_mean, plots, distributions_path, unique_labels, data, win_map_copy, weights, number_of_window_days, sample_freq, som_input,
-                               min_y, max_y, clusters_path, fixed_clusters_path, metrics_path)
+    output_summary_spreadsheet(time_hours, plots, distributions_path, unique_labels, data, win_map_copy, weights, number_of_window_days, sample_freq, som_input,
+                               min_y, max_y, clusters_path, fixed_clusters_path, metrics_path, results_path)
 
     ### Print that the analysis is complete ###
     print("Done")
