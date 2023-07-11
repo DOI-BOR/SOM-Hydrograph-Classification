@@ -7,6 +7,37 @@ import sklearn
 from sklearn.cluster import MeanShift
 
 
+def resample_timeseries(data, sample_freq):
+    """
+    Converts data that is not on an hourly timestep to an hourly timestep
+
+    Parameters
+    ----------
+    data: DataFrame
+        Input data to be resampled
+    sample_freq: int
+        Number of daily samples
+
+    Returns
+    -------
+
+    """
+
+    if sample_freq == 24:
+        resampled_data = data
+
+    elif sample_freq > 24:
+        # Convert from subhourly data to hourly data
+        resampled_data = data.resample('H').mean()
+
+    else:
+        # Convert from above hourly data to hourly. This assumes a forward fill of the data.
+        resampled_data = data.resample('H').ffill()
+
+    # Return to the calling function
+    return resampled_data
+
+
 def calculate_peak_value(timeseries):
     """
     Finds and returns the value of the largest peak (defined as the value with the greatest absolute difference from the mean of the array)
@@ -336,7 +367,7 @@ def calculate_mean_shift_clustering(relevant_distances, volumes, peaks, intersec
 
 
 def output_summary_spreadsheet(time_hours, plots, dists, unique_labels, data, win_map_copy, weights, number_of_window_days, sample_freq, som_input, min_y, max_y,
-                               clusters_path, fixed_cluster_path, metrics_path):
+                               clusters_path, fixed_cluster_path, metrics_path, results_path):
     """
     Creates a summary spreadsheet and plots of the combined SOM and mean shift clustering
 
@@ -372,6 +403,8 @@ def output_summary_spreadsheet(time_hours, plots, dists, unique_labels, data, wi
         Path to the fixed y range cluster plots
     metrics_path: str
         Path to the metric plots
+    results_path: str
+        Path to the top level results folder
 
     Returns
     -------
@@ -381,7 +414,7 @@ def output_summary_spreadsheet(time_hours, plots, dists, unique_labels, data, wi
     # todo: break items out into additional functions
 
     # Dictates which excel file the results will be written to
-    writer = pd.ExcelWriter('hydro_extraction_results/results.xlsx')
+    writer = pd.ExcelWriter(os.path.join(results_path, 'results.xlsx'))
 
     # Creates lists to be filled with a table for each cluster
     key_dfs = []
@@ -444,10 +477,7 @@ def output_summary_spreadsheet(time_hours, plots, dists, unique_labels, data, wi
 
         ######################################### Calculates metrics for each cluster ############################################
         # Generates column names for a correctly sized dataframe to hold cluster metrics
-        columns = []
-        for n in range(number_of_window_days * sample_freq):
-            # Column names are 0 to n
-            columns.append(n)
+        columns = np.arange(0, number_of_window_days * sample_freq, 1)
 
         # Initializes a dataframe to hold info about SOM weights from each cluster
         som_cluster_df = pd.DataFrame(columns=columns)
@@ -475,6 +505,7 @@ def output_summary_spreadsheet(time_hours, plots, dists, unique_labels, data, wi
             # Fills the weight vector for each SOM in the cluster into a dataframe
             som_cluster_df.loc[j] = w
             j += 1
+
         # Gets rid of hydrographs that contain missing values
         clean = [ele for ele in cluster_hydros if ele != None]
 
@@ -699,13 +730,11 @@ def output_summary_spreadsheet(time_hours, plots, dists, unique_labels, data, wi
 
     # Writes the table to a sheet in excel
     key_df.to_excel(writer, sheet_name="Hydrograph Key", index=False)
-    writer.save()
 
     # Writes the other dataframes to individual sheets for each cluster in the same excel file
     for number_of_window_days in range(len(som_cluster_dfs)):
         hydro_cluster_dfs[number_of_window_days].to_excel(writer, sheet_name=str(number_of_window_days) + " Hydrographs", index=False)
         som_cluster_dfs[number_of_window_days].to_excel(writer, sheet_name=str(number_of_window_days) + " SOM Weights", index=False)
-        writer.save()
 
     writer.close()
 

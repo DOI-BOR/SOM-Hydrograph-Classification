@@ -12,7 +12,8 @@ if __name__ == "__main__":
 
     ### User inputs ##
     # Name of the folder that timeseries files are contained within. Data should be in ft^3/s.
-    input_path = "OUTPUT"
+    #input_path = "OUTPUT"
+    input_path = "/Users/dloney/Documents/follum/inland_hazards/SOM-Hydrograph-Classification/data/other"
 
     # Number of days for each simulation
     number_of_window_days = 15
@@ -49,11 +50,17 @@ if __name__ == "__main__":
         # Reads hydrograph data from file (each file is one hydrograph)
         data = np.genfromtxt(file, delimiter=' ', skip_header=2)
 
+        # Resample the data to hourly
+        data = resample_timeseries(data, sample_freq)
+
         # Adds hydrograph as one row in a dataframe containing all hydrographs from the file
         hydros.loc[i] = data
         i += 1
 
-    print("Done importing data. Number of hydrographs:", len(hydros))
+    # Set the sample frequency to hourly
+    sample_freq = 24
+
+    print("Done importing data. Number of hydrographs: \t", len(hydros))
 
     # Creates a sample frequency column to the df that tells how often samples are taken each day
     freq_column = []
@@ -89,7 +96,7 @@ if __name__ == "__main__":
     ### Calculating Largest Peak Value and Number of Peaks per Hydrograph Prior to the SOM ###
     # creates a dataset without the frequency column for hydrograph analysis
     # allows the script file to be restarted from this cell after adjustments are made instead of re-reading all input data
-    data = hydros.iloc[:, 1:len(hydros.columns) - 1]
+    data = hydros.iloc[:, 1:len(hydros.columns)]
 
     # Makes  a list of 0 through the number of hours in each window
     time_hours = range(data.shape[1])
@@ -199,7 +206,7 @@ if __name__ == "__main__":
 
     ############################################# Plotting the clusters and generating results ###################################################
     output_summary_spreadsheet(time_hours, plots, distributions_path, unique_labels, df, win_map_copy, weights, number_of_window_days, sample_freq, som_input, min_y, max_y,
-                               clusters_path, fixed_clusters_path, metrics_path)
+                               clusters_path, fixed_clusters_path, metrics_path, results_path)
 
     ### Print that the analysis is complete ###
     print("Done")
