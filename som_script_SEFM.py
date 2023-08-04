@@ -13,7 +13,9 @@ if __name__ == "__main__":
     ### User inputs ##
     # Name of the folder that timeseries files are contained within. Data should be in ft^3/s.
     #input_path = "OUTPUT"
-    input_path = "/Users/dloney/Documents/follum/inland_hazards/SOM-Hydrograph-Classification/data/other"
+    input_path = "/Users/dloney/Library/CloudStorage/OneDrive-Personal/follum/inland_hazards/SOM-Hydrograph-Classification/data/other"
+    input_type = 'streamflow'
+    input_units = "$ft^3$/s"
 
     # Number of days for each simulation
     number_of_window_days = 15
@@ -21,7 +23,7 @@ if __name__ == "__main__":
     # Number of entries per day
     sample_freq = 24
 
-    # If user wants to generate metric cluster plots and SOM cell hydrograph plots, set plots to True below
+    # If user wants to generate metric cluster plots and SOM cell timeseries plots, set plots to True below
     # Generating plots increases runtime
     plots = True
 
@@ -39,7 +41,7 @@ if __name__ == "__main__":
     # Makes an array of every hour in the simulation from 0 to the final hour
     d_indices = np.arange(0, number_of_window_days * sample_freq, 1)
 
-    # Initializes a dataframe to store basin hydrographs in
+    # Initializes a dataframe to store basin timeseries in
     hydros = pd.DataFrame(columns=d_indices)
 
     print("Importing data...")
@@ -47,27 +49,27 @@ if __name__ == "__main__":
     # Uses glob package to go through the input file and read in all .plt files
     i = 0
     for file in glob.glob(str(input_path) + '/' + '*.PLT'):
-        # Reads hydrograph data from file (each file is one hydrograph)
+        # Reads timeseries data from file (each file is one timeseries)
         data = np.genfromtxt(file, delimiter=' ', skip_header=2)
 
         # Resample the data to hourly
         data = resample_timeseries(data, sample_freq)
 
-        # Adds hydrograph as one row in a dataframe containing all hydrographs from the file
+        # Adds timeseries as one row in a dataframe containing all timeseries from the file
         hydros.loc[i] = data
         i += 1
 
     # Set the sample frequency to hourly
     sample_freq = 24
 
-    print("Done importing data. Number of hydrographs: \t", len(hydros))
+    print("Done importing data. Number of timeseries: \t", len(hydros))
 
     # Creates a sample frequency column to the df that tells how often samples are taken each day
     freq_column = []
     for i in range (len(hydros)):
         freq_column.append(sample_freq)
 
-    # Adds the column to the dataframe with the hydrographs
+    # Adds the column to the dataframe with the timeseries
     hydros.insert(0, "Samples Per Day", freq_column)
 
     ### Creates folders for script file outputs ###
@@ -93,46 +95,46 @@ if __name__ == "__main__":
     if not os.path.isdir(metrics_path):
         os.makedirs(metrics_path)
 
-    ### Calculating Largest Peak Value and Number of Peaks per Hydrograph Prior to the SOM ###
-    # creates a dataset without the frequency column for hydrograph analysis
+    ### Calculating Largest Peak Value and Number of Peaks per timeseries Prior to the SOM ###
+    # creates a dataset without the frequency column for timeseries analysis
     # allows the script file to be restarted from this cell after adjustments are made instead of re-reading all input data
     data = hydros.iloc[:, 1:len(hydros.columns)]
 
     # Makes  a list of 0 through the number of hours in each window
     time_hours = range(data.shape[1])
 
-    # Calculates overall mean of all hydrographs by taking mean of all hydrograph means
+    # Calculates overall mean of all timeseries by taking mean of all timeseries means
     overall_mean = np.mean(np.mean(data))
 
-    # Makes input data an array so that it can be iterated through to perform calcs on each hydrograph
+    # Makes input data an array so that it can be iterated through to perform calcs on each timeseries
     som_input = data.to_numpy()
 
-    # Finds the value of the largest peak and the number of peaks in each hydrograph
+    # Finds the value of the largest peak and the number of peaks in each timeseries
     peaks = []
     intersections = []
 
-    # iterates through every hydrograph in the input data
+    # iterates through every timeseries in the input data
     for timeseries in som_input:
         # Calls the peakVal function
         peak = calculate_peak_value(timeseries)
 
-        # Calculate the individual hydrograph's mean
+        # Calculate the individual timeseries mean
         timeseries_mean = np.mean(timeseries)
 
-        # Scales the peak value by the hydrograph mean and the overall mean of all hydrographs and adds to a list of peaks
+        # Scales the peak value by the timeseries mean and the overall mean of all timeseries and adds to a list of peaks
         scaled_peak = peak / timeseries_mean * overall_mean
         peaks.append(scaled_peak)
 
         # Adds number of intersections with a percentile line (peaks) to a list by calling numPeaks function
         intersections.append(count_number_of_peaks(timeseries))
 
-    # Finds the maximum number of peaks out of all hydrographs
+    # Finds the maximum number of peaks out of all timeseries
     max_peaks = max(intersections)
 
-    # Scales the numbers of peaks list by the maximum number of peaks and overall hydrograph mean
+    # Scales the numbers of peaks list by the maximum number of peaks and overall timeseries mean
     scaled_intersects = intersections / max_peaks * overall_mean
 
-    # Adds columns containing number of peaks and largest peak values (one value for each parameter for each hydrograph) to the input data
+    # Adds columns containing number of peaks and largest peak values (one value for each parameter for each timeseries) to the input data
     data["Number of Peaks"] = scaled_intersects
     data["Peaks"] = peaks
     som_input = data.to_numpy()
@@ -142,16 +144,16 @@ if __name__ == "__main__":
     som = MiniSom(25, 25, som_input.shape[1], random_seed=1)
 
     # Uses 2500 training iterations, which was determined to be sufficient for reducing difference between iterations
-    som.train(som_input, 2500)
+    som.train(som_input, 5000)
 
-    # win_map shows which hydrographs from input data are contained in each bin of the trained SOM
+    # win_map shows which timeseries from input data are contained in each bin of the trained SOM
     win_map = som.win_map(som_input, return_indices = True)
 
     # Makes a copy of win_map to reference later after changing cell names from original win_map
     win_map_copy = copy.copy(win_map)
     print("Number of SOM cells used:", len(win_map))
 
-    # After fitting the SOM, drops the peaks and intersections from the data so that the hydrograph plots aren't skewed
+    # After fitting the SOM, drops the peaks and intersections from the data so that the timeseries plots aren't skewed
     data = data.drop("Peaks", axis=1)
     data = data.drop("Number of Peaks", axis=1)
     som_input = data.to_numpy()
@@ -170,18 +172,18 @@ if __name__ == "__main__":
     # Sorts the list of entries by how many hydroraphs are contained in each bin, from highest to lowest number
     som_assigned_timeseries.sort(key=lambda x: len(x[1]), reverse=True)
 
-    ### Plotting hydrographs from each SOM cell ###
-    # Makes plots of the all hydrographs contained in each bin if user has set to generate plots
+    ### Plotting timeseries from each SOM cell ###
+    # Makes plots of the all timeseries contained in each bin if user has set to generate plots
     if plots:
-        plot_cells(results_path, som_assigned_timeseries, som_input, time_hours, som_cell_indices)
+        plot_cells(results_path, som_assigned_timeseries, som_input, time_hours, som_cell_indices, input_type, input_units)
 
-    ### Plots hydrographs from each bin along with the overall weight vector of the bin ###
+    ### Plots timeseries from each bin along with the overall weight vector of the bin ###
     # Gets weights and distances for each cell in the SOM
     weights = som.get_weights()
     distances = som.distance_map()
 
-    # Makes lists to be filled with volumes, relevant distance (distances from cells that contain hydrographs), intersections and largest peak outputs for each cell
-    volumes, relevant_distances, peaks, intersections = calculate_cell_values(results_path, som_assigned_timeseries, som_input, som_cell_indices, weights, time_hours, distances,
+    # Makes lists to be filled with volumes, relevant distance (distances from cells that contain timeseries), intersections and largest peak outputs for each cell
+    volumes, relevant_distances, peaks, intersections = calculate_cell_values(results_path, som_assigned_timeseries, som_input, som_cell_indices, weights[:, :, :-2], time_hours, distances,
                                                                               plots)
 
     ### Mean-Shift Clustering ###
@@ -192,7 +194,7 @@ if __name__ == "__main__":
     unique_labels = np.unique(label)
     print("Number of Clusters: ", len(unique_labels))
 
-    # Adds coordinates for SOM cells containing hydrographs to the dataframe
+    # Adds coordinates for SOM cells containing timeseries to the dataframe
     cellList = []
     for cell, value in som_assigned_timeseries:
         cellList.append(som_cell_indices[cell])
@@ -205,8 +207,8 @@ if __name__ == "__main__":
     df["Cell Index"] = cellList
 
     ############################################# Plotting the clusters and generating results ###################################################
-    output_summary_spreadsheet(time_hours, plots, distributions_path, unique_labels, df, win_map_copy, weights, number_of_window_days, sample_freq, som_input, min_y, max_y,
-                               clusters_path, fixed_clusters_path, metrics_path, results_path)
+    output_summary_spreadsheet(time_hours, plots, distributions_path, unique_labels, df, win_map_copy, weights[:, :, :-2], number_of_window_days, sample_freq, som_input, min_y, max_y,
+                               clusters_path, fixed_clusters_path, metrics_path, results_path, input_type, input_units)
 
     ### Print that the analysis is complete ###
     print("Done")
