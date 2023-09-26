@@ -5,9 +5,10 @@ import pandas as pd
 import os, math, copy
 from minisom import MiniSom
 import matplotlib.pyplot as plt
-from sklearn.cluster import MeanShift, AgglomerativeClustering
+from sklearn.cluster import MeanShift, AgglomerativeClustering, estimate_bandwidth
+from sklearn.neighbors import kneighbors_graph
 from som_functions import *
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 
 def _create_subgroup_plot(som_input, time_hours, timeseries_subgroups, output_path, type, units, entry_group):
@@ -52,12 +53,12 @@ if __name__ == "__main__":
 
     ### User inputs ###
     # First line of CSV should be column names. First 2 columns of data should be datetime and streamflow values in ft^3/s.
-    input_filename = "/Users/dloney/Library/CloudStorage/OneDrive-Personal/follum/inland_hazards/SOM-Hydrograph-Classification/Hourly_USGS_DailyFlow_09277500.csv"
-    input_type = 'streamflow'
-    input_units = "$ft^3$/s"
+    input_filename = r"16-0549_HourlyPrecip.csv"
+    input_type = 'precipitation'
+    input_units = "in"
 
     # Specify the number of units(days) in each sliding window
-    number_of_window_days = 14
+    number_of_window_days = 3
 
     # Specify the number of samples taken each days
     sample_freq = 24
@@ -66,10 +67,8 @@ if __name__ == "__main__":
     plots = False
 
     # A correction factor for clustering bandwidth - user may need to tweak
-    correction = 2
-
-    # Set the maximum number of subgroups from a cluster
-    maximum_subgroups = 4
+    shape_correction = 2
+    seasonal_correction = 2
 
     # The y-axis limit for fixed range cluster plots. User will most likely need to adjust based on dataset if fixed range cluster plots are desired[
     min_y = 0
@@ -85,17 +84,13 @@ if __name__ == "__main__":
     ### Preprocessing ###
     # Read the input data. This may need to be adjusted depending on the format of your data
     input_data = pd.read_csv(input_filename, index_col=[0], parse_dates=True)
-    
-    start_index = np.argwhere(~np.isnan(input_data.values))[0, 0]
-    input_data = input_data.iloc[start_index:, :]
-    # input_data = pd.read_csv(input_filename, index_col=[0], skiprows=19, usecols=[0, 1], parse_dates=True)
-    # input_data = input_data.iloc[851:, 0]
 
     # If the dataset has negative values, those are changed to NaN's
     input_data[input_data < 0] = np.NAN
- 
-    # Fills in NaNs where possible by linearly interpolating surrounding data
-    input_data.interpolate(method='linear', limit=2, inplace=True)
+
+    # Check the daterange of the data
+    oa_date_range = pd.date_range(input_data.index[0], input_data.index[-1], freq=str(sample_freq) + 'H')
+    assert input_data.shape[0] == oa_date_range.shape[0], "There are missing timesteps in the sample file. Please correct and rerun."
 
     # Changes sampling frequency if it isn't already hourly
     input_data = resample_timeseries(input_data, sample_freq)
@@ -118,9 +113,6 @@ if __name__ == "__main__":
 
     # Puts streamflow data into the data frame using column names above
     working_data = pd.DataFrame(stream_flows, columns=columns)
-
-    # Identify rows with NaNs by taking a sum of every row that preserves NaNs and adding it as a column to the newdf
-    # working_data["sums"] = working_data.sum(axis=1, skipna=False)
 
     # Makes two arrays from the datetime objects and doesn't include the time variable in one so that the unique function can be used below
     date_times = np.asarray(input_data.index)
@@ -279,7 +271,7 @@ if __name__ == "__main__":
  
     ### Mean-Shift Clustering ###
     # Perform the mean shift clustering
-    label, volumes_scaled, flat_distances_scaled = calculate_mean_shift_clustering(volumes, relevant_distances, peaks, intersections, correction)
+    label, volumes_scaled, flat_distances_scaled = calculate_mean_shift_clustering(volumes, relevant_distances, peaks, intersections, shape_correction)
 
     # Finds the number of clusters
     unique_labels = np.unique(label)
@@ -321,36 +313,28 @@ if __name__ == "__main__":
             timeseries_starts[ia_indices[entry_date]] = datetime(year=timeseries_starts[ia_indices[entry_date]].year, month=2, day=28,
                                                                  hour=timeseries_starts[ia_indices[entry_date]].hour, minute=timeseries_starts[ia_indices[entry_date]].minute)
 
-        # Calculate the number of days between timeseries based on the month and day alone
-        if timeseries_starts.shape[0] < 10000:
-            # Sufficiently small number of timeseries to process. Calculate the full distance matrix
+        # Calculate the Julian date
+        timeseries_starts_julian = pd.to_datetime(timeseries_starts).dayofyear
 
-            # Calculate the distance to the forward date
-            date_forward = [np.datetime64(datetime(year=2000, month=timeseries_starts[x].month, day=timeseries_starts[x].day)) for x in range(0, len(timeseries_starts), 1)]
-            date_forward = np.array(date_forward)
+        # Setup the cyclic basis
+        timeseries_starts_cyclic = np.vstack((np.sin(2 * np.pi * timeseries_starts_julian / 365), np.cos(2 * np.pi * timeseries_starts_julian / 365)))
+        timeseries_starts_cyclic = np.transpose(timeseries_starts_cyclic)
 
-            # Calculate the distance to the backward date
-            date_backward = [np.datetime64(datetime(year=1999, month=timeseries_starts[x].month, day=timeseries_starts[x].day)) for x in range(0, len(timeseries_starts), 1)]
-            date_backward = np.array(date_backward)
-
-            # Difference date forward
-            distance_forward = np.abs(date_forward[:, np.newaxis] - date_forward[np.newaxis, :]).astype('timedelta64[D]')
-            distance_backward = np.abs(date_forward[:, np.newaxis] - date_backward[np.newaxis, :]).astype('timedelta64[D]')
-            distances = np.minimum(distance_backward, distance_forward)
-
-            # Perform the subclustering
-            if distances.shape[0] > maximum_subgroups:
-                # Number of timeseries is greater than the number of groups. Attempt to cluster.
-                clustering = AgglomerativeClustering(n_clusters=maximum_subgroups, memory=results_path)
-                sublabel = clustering.fit_predict(distances)
-
+        # Perform the clustering
+        if timeseries_starts_cyclic.shape[0] > 1:
+            # Sufficient samples exist. Create the connectivity graph
+            if timeseries_starts_cyclic.shape[0] < 21:
+                knn_graph = kneighbors_graph(timeseries_starts_cyclic, timeseries_starts_cyclic.shape[0] - 1, include_self=False, metric='manhattan')
             else:
-                # Too few timeseries exist in the cluster to futher cluer. Assign them to the same cluster.
-                sublabel = np.ones(distances.shape[0]) * offset_counter
+                knn_graph = kneighbors_graph(timeseries_starts_cyclic, 20, include_self=False, metric='manhattan')
+
+            # Create the labels
+            clustering = AgglomerativeClustering(distance_threshold=2 * np.pi / 4, n_clusters=None,  metric='manhattan', linkage='average', connectivity=knn_graph)
+            sublabel = clustering.fit_predict(timeseries_starts_cyclic)
 
         else:
-            # Too many timeseries exist to sublcuster. Break them out by month.
-            sublabel = pd.to_datetime(timeseries_starts).month
+            # Only one sample exists. Assign it to its own cluster
+            sublabel = np.array([0])
 
         # Assign the sublabel to the hydrographs
         timeseries_subgroups[clustered_timeseries] = sublabel + offset_counter

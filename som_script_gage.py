@@ -51,8 +51,9 @@ if __name__ == "__main__":
     # If the dataset has negative values, those are changed to NaN's
     input_data[input_data < 0] = np.NAN
  
-    # Fills in NaNs where possible by linearly interpolating surrounding data
-    input_data.interpolate(method='linear', limit=2, inplace=True)
+    # Check the daterange of the data
+    oa_date_range = pd.date_range(input_data.index[0], input_data.index[-1], freq=str(sample_freq) + 'H')
+    assert input_data.shape[0] == oa_date_range.shape[0], "There are missing timesteps in the sample file. Please correct and rerun."
 
     # Changes sampling frequency if it isn't already hourly
     input_data = resample_timeseries(input_data, sample_freq)
