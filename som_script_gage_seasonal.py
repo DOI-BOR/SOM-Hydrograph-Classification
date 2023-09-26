@@ -67,8 +67,7 @@ if __name__ == "__main__":
     plots = False
 
     # A correction factor for clustering bandwidth - user may need to tweak
-    shape_correction = 2
-    seasonal_correction = 2
+    shape_correction = 1.25
 
     # The y-axis limit for fixed range cluster plots. User will most likely need to adjust based on dataset if fixed range cluster plots are desired[
     min_y = 0
