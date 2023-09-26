@@ -24,10 +24,7 @@ def resample_timeseries(data, sample_freq):
 
     """
 
-    if sample_freq == 24:
-        resampled_data = data
-
-    elif sample_freq > 24:
+    if sample_freq > 24:
         # Convert from subhourly data to hourly data
         resampled_data = data.resample('H').mean()
 
