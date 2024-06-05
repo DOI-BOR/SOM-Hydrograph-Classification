@@ -46,7 +46,7 @@ if __name__ == "__main__":
     # Read the input data. This may need to be adjusted depending on the format of your data
     #data = pd.read_csv(input_filename, index_col=[0])
     input_data = pd.read_csv(input_filename, index_col=[0], skiprows=19, usecols=[0, 1], parse_dates=True)
-    input_data = input_data.iloc[851:, 0]
+    input_data = input_data.iloc[:, 0]
 
     # If the dataset has negative values, those are changed to NaN's
     input_data[input_data < 0] = np.NAN
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     working_data['Date'] = start_dates
     
     # Removes rows with NaNs
-    working_data.drop(np.unique(np.argwhere(np.isnan(working_data))[:, 0]), inplace=True)
+    working_data.drop(np.unique(np.argwhere(np.isnan(working_data).values[:, :-1])), inplace=True)
 
     # Remove rows with all zeros
     if remove_zeros:
