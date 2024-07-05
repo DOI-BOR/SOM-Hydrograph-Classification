@@ -106,6 +106,9 @@ if __name__ == "__main__":
 
         # Remove the entries from the dataset
         working_data = working_data.iloc[~zero_indices, :]
+        
+    # Update start dates after the row drop
+    start_dates = working_data['Date'].values
 
     print("Number of timeseries:", len(working_data))
 

@@ -703,7 +703,7 @@ def output_summary_spreadsheet(time_hours, plots, dists, unique_labels, data, wi
 
                 # Set the timeseries date
                 if start_dates is not None:
-                    hydro_cluster_df.iloc[m, 1] = pd.to_datetime(start_dates[m]).strftime('%Y-%m-%d')
+                    hydro_cluster_df.iloc[m, 1] = pd.to_datetime(start_dates[n]).strftime('%Y-%m-%d')
 
                 if subgroup is not None:
                     hydro_cluster_df.iloc[m, 2] = subgroup[n]
